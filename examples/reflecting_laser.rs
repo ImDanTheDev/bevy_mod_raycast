@@ -4,6 +4,7 @@
 use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::{core_pipeline::bloom::BloomSettings, math::vec3, prelude::*};
+use bevy_color::palettes::tailwind;
 use bevy_mod_raycast::prelude::*;
 
 fn main() {
@@ -35,26 +36,36 @@ fn bouncing_raycast(
     let ray_dir = (-ray_pos).normalize();
     let ray = Ray3d::new(ray_pos, ray_dir);
     gizmos.sphere(ray_pos, Quat::IDENTITY, 0.1, Color::WHITE);
-    bounce_ray(ray, &mut raycast, &mut gizmos, Color::RED);
+    bounce_ray(ray, &mut raycast, &mut gizmos, tailwind::RED_500.into());
 
     if let Some(cursor_ray) = **cursor_ray {
-        bounce_ray(cursor_ray, &mut raycast, &mut gizmos, Color::GREEN)
+        bounce_ray(
+            cursor_ray,
+            &mut raycast,
+            &mut gizmos,
+            tailwind::GREEN_500.into(),
+        )
     }
 }
 
 fn bounce_ray(mut ray: Ray3d, raycast: &mut Raycast, gizmos: &mut Gizmos, color: Color) {
     let mut intersections = Vec::with_capacity(MAX_BOUNCES + 1);
-    intersections.push((ray.origin, Color::rgb(30.0, 0.0, 0.0)));
+    intersections.push((ray.origin, Color::srgb(30.0, 0.0, 0.0)));
 
     for i in 0..MAX_BOUNCES {
         if let Some((_, hit)) = raycast.cast_ray(ray, &RaycastSettings::default()).first() {
             let bright = 1.0 + 10.0 * (1.0 - i as f32 / MAX_BOUNCES as f32);
-            intersections.push((hit.position(), color * bright));
-            gizmos.sphere(hit.position(), Quat::IDENTITY, 0.005, color * bright * 2.0);
+            intersections.push((hit.position(), color.with_luminance(bright)));
+            gizmos.sphere(
+                hit.position(),
+                Quat::IDENTITY,
+                0.005,
+                color.with_luminance(bright * 2.0),
+            );
             let ray_dir = ray.direction;
             // reflect the ray
             let proj = (ray_dir.dot(hit.normal()) / hit.normal().dot(hit.normal())) * hit.normal();
-            ray.direction = Direction3d::new(*ray_dir - 2.0 * proj).unwrap();
+            ray.direction = Dir3::new(*ray_dir - 2.0 * proj).unwrap();
             ray.origin = hit.position() + ray.direction * 1e-6;
         } else {
             break;
@@ -88,7 +99,10 @@ fn setup_scene(
     // Make a box of planes facing inward so the laser gets trapped inside:
     let plane = PbrBundle {
         mesh: meshes.add(Plane3d::default()),
-        material: materials.add(Color::GRAY.with_a(0.01)),
+        material: materials.add(StandardMaterial {
+            base_color: tailwind::GRAY_500.with_alpha(0.01).into(),
+            ..default()
+        }),
         ..default()
     };
     let pbr_bundle = move |translation, rotation| PbrBundle {

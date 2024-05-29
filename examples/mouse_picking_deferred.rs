@@ -3,6 +3,7 @@
 //! using components, and the plugin handles the raycasting. Note we use `()` as the raycasting set.
 
 use bevy::prelude::*;
+use bevy_color::palettes::tailwind;
 use bevy_mod_raycast::prelude::*;
 
 fn main() {
@@ -29,7 +30,10 @@ fn setup(
     commands.spawn((
         PbrBundle {
             mesh: meshes.add(Sphere::default()),
-            material: materials.add(Color::GRAY),
+            material: materials.add(StandardMaterial {
+                base_color: tailwind::GRAY_500.into(),
+                ..default()
+            }),
             transform: Transform::from_xyz(0.0, 0.0, -5.0),
             ..default()
         },
